@@ -22,12 +22,12 @@
  *	scottfromscott@gmail.com
  *
  */
-#include "AP_Declination.h"
+#include "GeoMag.h"
 
 #include <cmath>
 
-#include <AP_Common/AP_Common.h>
-#include <AP_Math/AP_Math.h>
+#include "../Embed_Common/Embed_Common.h"
+#include "../Embed_Math/Embed_Math.h"
 
 /*
   calculate magnetic field intensity and orientation
