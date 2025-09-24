@@ -1,6 +1,15 @@
 #pragma once
 
-#include "../Embed_Common/Location.h"
+#include <cstdint>
+struct Location {
+    int32_t lat;  ///< latitude  in 1e-7 degrees (WGS-84)
+    int32_t lng;  ///< longitude in 1e-7 degrees (WGS-84)
+};
+
+/// Minimal 3D vector type (Gauss components, NED frame: x=North, y=East, z=Down)
+struct Vector3f {
+    float x{0}, y{0}, z{0};
+};
 
 /**
  * @class AP_Declination

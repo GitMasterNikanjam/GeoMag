@@ -26,8 +26,18 @@
 
 #include <cmath>
 
-#include "../Embed_Common/Embed_Common.h"
-#include "../Embed_Math/Embed_Math.h"
+// standalone helpers (no Embed_* deps)
+#include <algorithm>
+#include <cstdint>
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+static inline float radians(float deg) { return deg * float(M_PI/180.0); }
+template<typename T>
+static inline T clampT(T v, T lo, T hi) { return std::min(std::max(v, lo), hi); }
+static inline uint32_t constrain_u32(uint32_t v, uint32_t lo, uint32_t hi) {
+    return clampT<uint32_t>(v, lo, hi);
+}
 
 /*
   calculate magnetic field intensity and orientation
@@ -67,9 +77,10 @@ bool AP_Declination::get_mag_field_ef(float latitude_deg, float longitude_deg, f
     }
 
     /* find index of nearest low sampling point */
-    uint32_t min_lat_index = constrain_int32(static_cast<uint32_t>((-(SAMPLING_MIN_LAT) + min_lat)  / SAMPLING_RES), 0, LAT_TABLE_SIZE - 2);
-    uint32_t min_lon_index = constrain_int32(static_cast<uint32_t>((-(SAMPLING_MIN_LON) + min_lon) / SAMPLING_RES), 0, LON_TABLE_SIZE -2);
-
+    uint32_t min_lat_index = constrain_u32(static_cast<uint32_t>((-(SAMPLING_MIN_LAT) + min_lat)  / SAMPLING_RES),
+                                           0u, static_cast<uint32_t>(LAT_TABLE_SIZE - 2));
+    uint32_t min_lon_index = constrain_u32(static_cast<uint32_t>((-(SAMPLING_MIN_LON) + min_lon) / SAMPLING_RES),
+                                           0u, static_cast<uint32_t>(LON_TABLE_SIZE - 2));
     /* calculate intensity */
 
     float data_sw = intensity_table[min_lat_index][min_lon_index];
@@ -128,19 +139,30 @@ float AP_Declination::get_declination(float latitude_deg, float longitude_deg)
     return declination_deg;
 }
 
-/*
-  get earth field as a Vector3f in Gauss given a Location
-*/
+/**
+ * @brief Get Earth magnetic field vector (Gauss) at a WGS-84 location.
+ * @details
+ * Uses total intensity (|B|), declination D (east of north), and inclination I
+ * (positive downward) to compute NED components directly:
+ *   N = |B| * cos(I) * cos(D)
+ *   E = |B| * cos(I) * sin(D)
+ *   D = |B| * sin(I)
+ */
 Vector3f AP_Declination::get_earth_field_ga(const Location &loc)
 {
-    float declination_deg=0, inclination_deg=0, intensity_gauss=0;
-    get_mag_field_ef(loc.lat*1.0e-7f, loc.lng*1.0e-7f, intensity_gauss, declination_deg, inclination_deg);
+    float declination_deg = 0.0f, inclination_deg = 0.0f, intensity_gauss = 0.0f;
+    get_mag_field_ef(loc.lat * 1.0e-7f,  // degrees
+                     loc.lng * 1.0e-7f,  // degrees
+                     intensity_gauss,
+                     declination_deg,
+                     inclination_deg);
 
-    // create earth field
-    Vector3f mag_ef = Vector3f(intensity_gauss, 0.0, 0.0);
-    Matrix3f R;
+    const float D = radians(declination_deg);
+    const float I = radians(inclination_deg);
 
-    R.from_euler(0.0f, -radians(inclination_deg), radians(declination_deg));
-    mag_ef = R * mag_ef;
+    Vector3f mag_ef;
+    mag_ef.x = intensity_gauss * std::cos(I) * std::cos(D); // North
+    mag_ef.y = intensity_gauss * std::cos(I) * std::sin(D); // East
+    mag_ef.z = intensity_gauss * std::sin(I);               // Down (positive)
     return mag_ef;
 }
