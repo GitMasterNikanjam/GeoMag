@@ -1,3 +1,9 @@
+/*
+
+mkdir -p ./bin && g++ -std=c++11 -Wall -Wextra -I/../.. test_geomag.cpp ../../GeoMag.cpp ../../../Embed_Common/Embed_Common.cpp ../../../Embed_Math/Embed_Math.cpp -o ./bin/test_geomag
+
+*/
+
 #include <cstdio>
 #include "../../GeoMag.h"
 #include "../../../Embed_Common/Location.h"
